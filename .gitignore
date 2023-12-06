@@ -1,0 +1,10 @@
+.env
+build
+*.egg-info
+*.pyc
+*.pyd
+.*.swp
+*.so
+.idea/*
+dist
+.python-version
