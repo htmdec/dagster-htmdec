@@ -1,76 +1,86 @@
 import io
-from typing import Tuple
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from dagster import (
-    AssetOut,
+    AssetExecutionContext,
+    AssetIn,
     Definitions,
+    DynamicPartitionsDefinition,
     EnvVar,
     FilesystemIOManager,
+    IdentityPartitionMapping,
+    SourceAsset,
     asset,
-    multi_asset,
+    define_asset_job,
 )
-from pandas import DataFrame, get_dummies, read_csv, read_html
-from sklearn.linear_model import LinearRegression as Regression
+from dagster._core.definitions.external_asset import (
+    create_external_asset_from_source_asset,
+)
 
 from .io_manager import ConfigurableGirderIOManager
+from .resources import GirderConnection, GirderCredentials
+from .sensors import make_girder_folder_sensor
 
+pdv_partition = DynamicPartitionsDefinition(name="pdv_items")
 
-@asset
-def country_stats() -> DataFrame:
-    df = read_html(
-        "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
-    )[0]
-    df.columns = [
-        "country",
-        "continent",
-        "subregion",
-        "pop_20220701",
-        "pop_20230701",
-        "pop_change",
-    ]
-    df["pop_change"] = df["pop_change"].str.replace("−", "-")
-    df["pop_change"] = df["pop_change"].str.rstrip("%").astype("float")
-    return df
-
-
-@asset
-def change_model(country_stats: DataFrame) -> Regression:
-    data = country_stats.dropna(subset=["pop_change"])
-    dummies = get_dummies(data[["continent"]])
-    return Regression().fit(dummies, data["pop_change"])
-
-
-@multi_asset(
-    outs={
-        "continent_stats_df": AssetOut(io_manager_key="fs_io_manager"),
-        "continent_stats_csv": AssetOut(io_manager_key="girder_io_manager"),
-    }
+pdv_sources = SourceAsset(
+    "pdv_sources",
+    io_manager_key="girder_io_manager",
+    partitions_def=pdv_partition,
 )
-def continent_stats(
-    country_stats: DataFrame, change_model: Regression
-) -> Tuple[DataFrame, io.BytesIO]:
-    result = country_stats.groupby("continent").sum()
-    result["pop_change_factor"] = change_model.coef_
-    fp = io.BytesIO()
-    result.to_csv(fp)
-    fp.seek(0)
-    return result, fp
 
 
-@asset(io_manager_key="girder_io_manager")
-def stats_read_from_girder(continent_stats_csv: io.BytesIO) -> None:
-    df = read_csv(continent_stats_csv)
-    print(df.head())
+@asset(
+    ins={"pdv_sources": AssetIn(partition_mapping=IdentityPartitionMapping())},
+    io_manager_key="girder_io_manager",
+    partitions_def=pdv_partition,
+)
+def processed_pdv_data(
+    context: AssetExecutionContext, pdv_sources: io.BytesIO
+) -> io.BytesIO:
+    df = pd.read_csv(pdv_sources)
+    b, a = np.polyfit(df["x"], df["y"], deg=1)
 
+    plt.figure()
+    plt.scatter(df["x"], df["y"])
+    xseq = np.linspace(min(df["x"]), max(df["x"]), 100)
+    plt.plot(xseq, a + b * xseq, color="k", lw=2.5)
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    return buf
+
+
+pdv_job = define_asset_job(name="pdv_processing_job", selection="processed_pdv_data")
 
 defs = Definitions(
-    assets=[country_stats, change_model, continent_stats, stats_read_from_girder],
+    assets=[
+        create_external_asset_from_source_asset(pdv_sources),
+        processed_pdv_data,
+    ],
+    jobs=[pdv_job],
+    sensors=[
+        make_girder_folder_sensor(
+            pdv_job,
+            EnvVar("GIRDER_SRC_FOLDER_ID").get_value(),
+            "pdv_watchdog",
+            pdv_partition,
+        )
+    ],
     resources={
         "fs_io_manager": FilesystemIOManager(),
         "girder_io_manager": ConfigurableGirderIOManager(
             api_key=EnvVar("GIRDER_API_KEY"),
             api_url=EnvVar("GIRDER_API_URL"),
-            folder_id=EnvVar("GIRDER_FOLDER_ID"),
+            source_folder_id=EnvVar("GIRDER_SRC_FOLDER_ID"),
+            target_folder_id=EnvVar("GIRDER_DST_FOLDER_ID"),
+        ),
+        "girder": GirderConnection(
+            credentials=GirderCredentials(
+                api_key=EnvVar("GIRDER_API_KEY"), api_url=EnvVar("GIRDER_API_URL")
+            )
         ),
     },
 )

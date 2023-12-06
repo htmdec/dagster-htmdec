@@ -12,10 +12,11 @@ from girder_client import GirderClient
 
 
 class GirderIOManager(IOManager):
-    def __init__(self, api_url, api_key, folder_id):
+    def __init__(self, api_url, api_key, source_folder_id, target_folder_id):
         self._cli = GirderClient(apiUrl=api_url)
         self._cli.authenticate(apiKey=api_key)
-        self.folder_id = folder_id
+        self.source_folder_id = source_folder_id
+        self.target_folder_id = target_folder_id
 
     def _get_path(self, context) -> str:
         if context.has_partition_key:
@@ -27,21 +28,16 @@ class GirderIOManager(IOManager):
         if not obj:
             return
         path = self._get_path(context)
-        name = ".".join(os.path.basename(path).rsplit("_", 1))
+        name = ".".join(os.path.basename(path).rsplit("_", 1)).replace("csv", "png")
         size = obj.seek(0, os.SEEK_END)
         obj.seek(0)
 
-        print(dir(context))
-        print(context.config)
-        print(context.metadata)
-        print(context.version)
-
         fobj = self._cli.uploadStreamToFolder(
-            self.folder_id,
+            self.target_folder_id,
             obj,
             name,
             size=size,
-            mimeType="text/csv",
+            mimeType="image/png",
         )
         girder_metadata = {
             "code_version": context.version,
@@ -62,9 +58,10 @@ class GirderIOManager(IOManager):
             context.add_output_metadata(metadata)
 
     def load_input(self, context: InputContext):
+        print("In input")
         path = self._get_path(context)
         name = ".".join(os.path.basename(path).rsplit("_", 1))
-        children = list(self._cli.listItem(self.folder_id, name=name))
+        children = list(self._cli.listItem(self.source_folder_id, name=name))
         if len(children) != 1:
             raise Exception(
                 f"Expected to find exactly one item at path {path}, but found {len(children)}"
@@ -85,7 +82,10 @@ class GirderIOManager(IOManager):
 class ConfigurableGirderIOManager(ConfigurableIOManagerFactory):
     api_key: str
     api_url: str
-    folder_id: str
+    source_folder_id: str
+    target_folder_id: str
 
     def create_io_manager(self, context) -> GirderIOManager:
-        return GirderIOManager(self.api_url, self.api_key, self.folder_id)
+        return GirderIOManager(
+            self.api_url, self.api_key, self.source_folder_id, self.target_folder_id
+        )
