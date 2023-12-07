@@ -20,7 +20,12 @@ def make_girder_folder_sensor(
         for item in new_items:
             tags = partitions_def.get_tags_for_partition_key(item["name"])
             tags.update(item)
-            run_requests.append(RunRequest(partition_key=item["name"], tags=tags))
+            run_requests.append(
+                RunRequest(
+                    partition_key=item["name"],
+                    tags=tags,
+                )
+            )
         return SensorResult(
             run_requests=run_requests,
             dynamic_partitions_requests=[

@@ -6,7 +6,11 @@ FROM python:3.10-slim
 RUN pip install \
     dagster \
     dagster-postgres \
-    dagster-docker
+    dagster-docker \
+    pandas \
+    matplotlib \
+    numpy \
+    girder-client
 
 # Add repository code
 
