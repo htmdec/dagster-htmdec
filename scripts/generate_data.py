@@ -11,7 +11,7 @@ rng = np.random.RandomState()
 if UPLOAD:
     gc = GirderClient(apiUrl=os.environ.get("GIRDER_API_URL"))
     gc.authenticate(apiKey=os.environ.get("GIRDER_API_KEY"))
-    gc.delete(f"/folder/{os.environ.get('GIRDER_SRC_FOLDER_ID')}/contents")
+    gc.delete(f"/folder/{os.environ.get('DATAFLOW_SRC_FOLDER_ID')}/contents")
 
 
 def create_external_asset_materialization(data):
@@ -42,7 +42,7 @@ while True:
     generate_data(name)
     if UPLOAD:
         fobj = gc.uploadFileToFolder(
-            os.environ.get("GIRDER_SRC_FOLDER_ID"),
+            os.environ.get("DATAFLOW_SRC_FOLDER_ID"),
             name,
             mimeType="text/csv",
         )

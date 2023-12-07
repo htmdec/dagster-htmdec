@@ -23,7 +23,7 @@ defs = Definitions(
     sensors=[
         make_girder_folder_sensor(
             pdv_job,
-            EnvVar("GIRDER_SRC_FOLDER_ID").get_value(),
+            EnvVar("DATAFLOW_SRC_FOLDER_ID").get_value(),
             "pdv_watchdog",
             pdv_partition,
         )
@@ -33,8 +33,8 @@ defs = Definitions(
         "girder_io_manager": ConfigurableGirderIOManager(
             api_key=EnvVar("GIRDER_API_KEY"),
             api_url=EnvVar("GIRDER_API_URL"),
-            source_folder_id=EnvVar("GIRDER_SRC_FOLDER_ID"),
-            target_folder_id=EnvVar("GIRDER_DST_FOLDER_ID"),
+            source_folder_id=EnvVar("DATAFLOW_SRC_FOLDER_ID"),
+            target_folder_id=EnvVar("DATAFLOW_DST_FOLDER_ID"),
         ),
         "girder": GirderConnection(
             credentials=GirderCredentials(

@@ -29,6 +29,7 @@ class GirderIOManager(IOManager):
         if not obj:
             return
         path = self._get_path(context)
+        # TODO make it generic
         name = ".".join(os.path.basename(path).rsplit("_", 1)).replace("csv", "png")
         size = obj.seek(0, os.SEEK_END)
         obj.seek(0)
@@ -43,6 +44,8 @@ class GirderIOManager(IOManager):
         girder_metadata = {
             "code_version": context.version,
             "run_id": context.run_id,
+            "dataflow": os.environ.get("DATAFLOW_ID", "unknown"),
+            "spec": os.environ.get("DATAFLOW_SPEC_ID", "unknown"),
         }
         self._cli.addMetadataToItem(fobj["itemId"], girder_metadata)
         girder_url = parse.urlparse(self._cli.urlBase)
@@ -54,6 +57,9 @@ class GirderIOManager(IOManager):
             "download_url": MetadataValue.url(
                 f"{self._cli.urlBase}file/{fobj['_id']}/download"
             ),
+            "dataflow": os.environ.get("DATAFLOW_ID", "unknown"),
+            "spec": os.environ.get("DATAFLOW_SPEC_ID", "unknown"),
+            "docker_image": os.environ.get("DAGSTER_CURRENT_IMAGE", "unknown"),
         }
         if context.has_asset_key:
             context.add_output_metadata(metadata)
