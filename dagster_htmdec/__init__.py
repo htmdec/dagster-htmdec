@@ -1,7 +1,7 @@
 from dagster._core.definitions.external_asset import (
     create_external_asset_from_source_asset,
 )
-from dasgter import (
+from dagster import (
     Definitions,
     EnvVar,
     FilesystemIOManager,
