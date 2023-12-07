@@ -1,6 +1,6 @@
 from dagster import DynamicPartitionsDefinition, RunRequest, SensorResult, sensor
 
-from .resources import GirderConnection
+from ..resources import GirderConnection
 
 
 def make_girder_folder_sensor(

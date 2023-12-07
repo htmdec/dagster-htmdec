@@ -6,8 +6,9 @@ setup(
     install_requires=[
         "dagster",
         "girder-client",
+        "matplotlib",
+        "numpy",
         "pandas",
-        "scikit-learn",
     ],
     extras_require={"dev": ["dagster-webserver", "pytest"]},
 )
