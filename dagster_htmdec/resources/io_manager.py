@@ -1,12 +1,13 @@
 import io
 import os
 import urllib.parse as parse
+
 from dagster import (
-    IOManager,
     ConfigurableIOManagerFactory,
+    InputContext,
+    IOManager,
     MetadataValue,
     OutputContext,
-    InputContext,
 )
 from girder_client import GirderClient
 
