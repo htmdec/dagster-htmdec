@@ -10,7 +10,7 @@ UPLOAD = True
 rng = np.random.RandomState()
 if UPLOAD:
     gc = GirderClient(apiUrl=os.environ.get("GIRDER_API_URL"))
-    gc.authenticate(apiKey=os.environ.get("GIRDER_API_KEY"))
+    gc.token = os.environ.get("GIRDER_TOKEN")
     gc.delete(f"/folder/{os.environ.get('DATAFLOW_SRC_FOLDER_ID')}/contents")
 
 

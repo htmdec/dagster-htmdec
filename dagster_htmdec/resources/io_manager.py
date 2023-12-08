@@ -13,9 +13,9 @@ from girder_client import GirderClient
 
 
 class GirderIOManager(IOManager):
-    def __init__(self, api_url, api_key, source_folder_id, target_folder_id):
+    def __init__(self, api_url, token, source_folder_id, target_folder_id):
         self._cli = GirderClient(apiUrl=api_url)
-        self._cli.authenticate(apiKey=api_key)
+        self._cli.token = token
         self.source_folder_id = source_folder_id
         self.target_folder_id = target_folder_id
 
@@ -28,26 +28,31 @@ class GirderIOManager(IOManager):
     def handle_output(self, context: OutputContext, obj):
         if not obj:
             return
-        path = self._get_path(context)
-        # TODO make it generic
-        name = ".".join(os.path.basename(path).rsplit("_", 1)).replace("csv", "png")
+        item, file = self._get_file(context, self.target_folder_id, suffix="png")
         size = obj.seek(0, os.SEEK_END)
         obj.seek(0)
 
-        fobj = self._cli.uploadStreamToFolder(
-            self.target_folder_id,
-            obj,
-            name,
-            size=size,
-            mimeType="image/png",
-        )
+        if file:
+            fobj = self._cli.uploadFileContents(file["_id"], obj, size)
+        else:
+            file = self._cli.post(
+                "file",
+                parameters={
+                    "parentType": "item",
+                    "parentId": item["_id"],
+                    "name": item["name"],
+                    "size": size,
+                    "mimeType": "image/png",
+                },
+            )
+            fobj = self._cli._uploadContents(file, obj, size)
         girder_metadata = {
             "code_version": context.version,
             "run_id": context.run_id,
             "dataflow": os.environ.get("DATAFLOW_ID", "unknown"),
             "spec": os.environ.get("DATAFLOW_SPEC_ID", "unknown"),
         }
-        self._cli.addMetadataToItem(fobj["itemId"], girder_metadata)
+        self._cli.addMetadataToItem(item["_id"], girder_metadata)
         girder_url = parse.urlparse(self._cli.urlBase)
         metadata = {
             "size": fobj["size"],
@@ -65,34 +70,39 @@ class GirderIOManager(IOManager):
             context.add_output_metadata(metadata)
 
     def load_input(self, context: InputContext):
-        print("In input")
-        path = self._get_path(context)
-        name = ".".join(os.path.basename(path).rsplit("_", 1))
-        children = list(self._cli.listItem(self.source_folder_id, name=name))
-        if len(children) != 1:
+        item, file = self._get_file(context, self.source_folder_id)
+        if not file:
             raise Exception(
-                f"Expected to find exactly one item at path {path}, but found {len(children)}"
-            )
-
-        files = self._cli.get("item/{}/files".format(children[0]["_id"]))
-        if len(files) != 1:
-            raise Exception(
-                f"Expected to find exactly one file at path {path}, but found {len(files)}"
+                f"Expected to find exactly one file at path {item['name']}."
             )
 
         fp = io.BytesIO()
-        self._cli.downloadFile(files[0]["_id"], fp)
+        self._cli.downloadFile(file["_id"], fp)
         fp.seek(0)
         return fp
 
+    def _get_file(self, context, folder_id, suffix=None):
+        path = self._get_path(context)
+        name = ".".join(os.path.basename(path).rsplit("_", 1))
+        if suffix:
+            name = name.replace("csv", suffix)
+        item = self._cli.loadOrCreateItem(name, folder_id)
+
+        files = self._cli.get("item/{}/files".format(item["_id"]))
+        try:
+            file = files[0]
+        except (TypeError, IndexError):
+            file = None
+        return item, file
+
 
 class ConfigurableGirderIOManager(ConfigurableIOManagerFactory):
-    api_key: str
+    token: str
     api_url: str
     source_folder_id: str
     target_folder_id: str
 
     def create_io_manager(self, context) -> GirderIOManager:
         return GirderIOManager(
-            self.api_url, self.api_key, self.source_folder_id, self.target_folder_id
+            self.api_url, self.token, self.source_folder_id, self.target_folder_id
         )

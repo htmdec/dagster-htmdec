@@ -6,7 +6,7 @@ from dagster_docker import docker_executor
 executor = docker_executor.configured(
     {
         "env_vars": [
-            f"GIRDER_API_KEY={os.environ['GIRDER_API_KEY']}",
+            f"GIRDER_TOKEN={os.environ['GIRDER_TOKEN']}",
             f"GIRDER_API_URL={os.environ['GIRDER_API_URL']}",
             f"DATAFLOW_ID={os.environ['DATAFLOW_ID']}",
             f"DATAFLOW_SPEC_ID={os.environ['DATAFLOW_SPEC_ID']}",

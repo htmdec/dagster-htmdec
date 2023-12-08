@@ -7,7 +7,7 @@ from pydantic import PrivateAttr
 
 class GirderCredentials(ConfigurableResource):
     api_url: str
-    api_key: str
+    token: str
 
 
 class GirderConnection(ConfigurableResource):
@@ -17,7 +17,7 @@ class GirderConnection(ConfigurableResource):
     @contextmanager
     def yield_for_execution(self, context):
         self._client = girder_client.GirderClient(apiUrl=self.credentials.api_url)
-        self._client.authenticate(apiKey=self.credentials.api_key)
+        self._client.token = self.credentials.token
         yield self
 
     def list_folder(self, folder_id):
