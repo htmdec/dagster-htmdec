@@ -88,7 +88,10 @@ class GirderIOManager(IOManager):
             name = name.replace("csv", suffix)
         item = self._cli.loadOrCreateItem(name, folder_id)
 
-        files = self._cli.get("item/{}/files".format(item["_id"]))
+        files = self._cli.get(
+            f"item/{item['_id']}/files",
+            parameters={"limit": 1, "offset": 0, "sort": "created", "sortdir": -1},
+        )
         try:
             file = files[0]
         except (TypeError, IndexError):
