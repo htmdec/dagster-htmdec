@@ -7,25 +7,25 @@ from dagster import (
     FilesystemIOManager,
 )
 
-from .assets import pdv_sources, processed_pdv_data
-from .jobs import pdv_job
-from .partitions import pdv_partition
+from .assets import demo_sources, processed_demo_data
+from .jobs import demo_job
+from .partitions import demo_partition
 from .resources import GirderConnection, GirderCredentials
 from .resources.io_manager import ConfigurableGirderIOManager
 from .sensors import make_girder_folder_sensor
 
 defs = Definitions(
     assets=[
-        create_external_asset_from_source_asset(pdv_sources),
-        processed_pdv_data,
+        create_external_asset_from_source_asset(demo_sources),
+        processed_demo_data,
     ],
-    jobs=[pdv_job],
+    jobs=[demo_job],
     sensors=[
         make_girder_folder_sensor(
-            pdv_job,
+            demo_job,
             EnvVar("DATAFLOW_SRC_FOLDER_ID").get_value(),
-            "pdv_watchdog",
-            pdv_partition,
+            "demo_watchdog",
+            demo_partition,
         )
     ],
     resources={

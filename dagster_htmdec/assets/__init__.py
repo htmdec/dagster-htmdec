@@ -14,25 +14,25 @@ from dagster import (
     asset,
 )
 
-from ..partitions import pdv_partition
+from ..partitions import demo_partition
 
-pdv_sources = SourceAsset(
-    "pdv_sources",
+demo_sources = SourceAsset(
+    "demo_sources",
     io_manager_key="girder_io_manager",
-    partitions_def=pdv_partition,
+    partitions_def=demo_partition,
 )
 
 
 @asset(
-    ins={"pdv_sources": AssetIn(partition_mapping=IdentityPartitionMapping())},
+    ins={"demo_sources": AssetIn(partition_mapping=IdentityPartitionMapping())},
     io_manager_key="girder_io_manager",
-    partitions_def=pdv_partition,
-    check_specs=[AssetCheckSpec(name="negative_slope", asset="processed_pdv_data")],
+    partitions_def=demo_partition,
+    check_specs=[AssetCheckSpec(name="negative_slope", asset="processed_demo_data")],
 )
-def processed_pdv_data(
-    context: AssetExecutionContext, pdv_sources: io.BytesIO
+def processed_demo_data(
+    context: AssetExecutionContext, demo_sources: io.BytesIO
 ) -> io.BytesIO:
-    df = pd.read_csv(pdv_sources)
+    df = pd.read_csv(demo_sources)
     b, a = np.polyfit(df["x"], df["y"], deg=1)
 
     plt.figure()

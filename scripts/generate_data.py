@@ -49,7 +49,7 @@ while True:
         item_uri = os.path.join(gc.urlBase, "#item", str(fobj["itemId"]))
         payload = {
             "uri": item_uri,
-            "asset_key": "pdv_sources",
+            "asset_key": "demo_sources",
             "partition": name,
             "data_version": "60bc881",
             "description": "Random scatter plot",

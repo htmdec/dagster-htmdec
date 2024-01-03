@@ -1,4 +1,4 @@
 from dagster import DynamicPartitionsDefinition
 
 
-pdv_partition = DynamicPartitionsDefinition(name="pdv_items")
+demo_partition = DynamicPartitionsDefinition(name="demo_items")
